@@ -3,9 +3,9 @@ import asyncio
 from arpi import telegram
 
 
-async def main() -> None:
+async def a_main() -> None:
     await telegram.initialize()
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+def main() -> None:
+    asyncio.run(a_main())
