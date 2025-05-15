@@ -17,6 +17,7 @@ class Process:
 
     def __init__(self, chat_id: int, command: str) -> None:
         self.__chat_id = chat_id
+        self.__command = command
         self.__log_file = "".join([random.choice(string.ascii_letters) for _ in range(8)])
         self.__end_marker = "".join([random.choice(string.ascii_letters) for _ in range(8)])
         self.__popen = Popen(f"({command}; echo {self.__end_marker}) >> logs/{self.__log_file} 2>&1", shell=True)
@@ -32,11 +33,11 @@ class Process:
 
             await asyncio.sleep(2)
             if self.__popen.returncode == 0:
-                text: str = f"Process executed successfully: <code>{self.command}</code>"
+                text: str = f"Process executed successfully: <code>{self.__command}</code>"
             else:
-                text: str = f"Process executed with error (returncode {self.__popen.returncode}): <code>{self.command}</code>"
+                text: str = f"Process executed with error (returncode {self.__popen.returncode}): <code>{self.__command}</code>"
             text += f"\nStdout:\n<code>{await self.log()}</code>"
-            del Process.processes[self.command]
+            del Process.processes[self.__command]
             await base.bot.send_message(self.__chat_id, text, parse_mode="html")
 
 
@@ -52,7 +53,7 @@ class Process:
     #____________________PROPERTIES____________________
     @property
     def command(self) -> str:
-        return self.__popen.args
+        return self.__command
 
 
     @property
