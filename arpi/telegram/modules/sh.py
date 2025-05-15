@@ -67,7 +67,7 @@ async def _process(callback: CallbackQuery) -> None:
     process: Process = list(Process.processes.values())[int(callback.data.replace("process ", ""))]
     await callback.answer()
     while True:
-        if process not in Process.processes:
+        if process not in Process.processes.values():
             return
         text: str = (
             f"Process: <code>{process.command}</code>\n"
