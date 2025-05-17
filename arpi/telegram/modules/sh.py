@@ -47,9 +47,10 @@ class Process:
             raw_lines: list[str] = (await f.read()).strip().split("\n")
             text: str = ""
             for raw_line in raw_lines:
-                if "to-chk" not in raw_line:
+                if "[RSYNC]" not in raw_line:
                     text += re.sub(r"\[.*?m", "", raw_line) + "\n"
-            text += re.sub(r"\[.*?m", "", raw_lines[-1])
+            if "[RSYNC]" in raw_lines[-1]:
+                text += re.sub(r"\[.*?m", "", raw_lines[-1])
             return text
 
 
