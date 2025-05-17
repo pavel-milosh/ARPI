@@ -1,5 +1,6 @@
 import asyncio
 import random
+import re
 import string
 from subprocess import Popen
 
@@ -46,9 +47,9 @@ class Process:
             raw_lines: list[str] = (await f.read()).strip().split("\n")
             text: str = ""
             for raw_line in raw_lines:
-                if "to-check" not in raw_line:
-                    text += f"{raw_line}\n"
-            text += raw_lines[-1]
+                if "to-chk" not in raw_line:
+                    text += f"{re.sub(r'\[.*?m', '', raw_line)}\n"
+            text += re.sub(r'\[.*?m', '', raw_lines[-1])
             return text
 
 
