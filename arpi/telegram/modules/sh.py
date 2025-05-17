@@ -22,7 +22,7 @@ class Process:
         self.log_file = "".join([random.choice(string.ascii_letters) for _ in range(8)])
         self.end_marker = "".join([random.choice(string.ascii_letters) for _ in range(8)])
         Process.processes[self.command] = self
-        self.popen = Popen(f"({self.command}; echo {self.end_marker}) >> logs/{self.log_file} 2>&1", shell=True)
+        self.popen = Popen(f"({self.command}; echo {self.end_marker}) > logs/{self.log_file} 2>&1", shell=True)
         asyncio.create_task(self.__check_alive())
 
 
@@ -44,14 +44,7 @@ class Process:
 
     async def log(self) -> str:
         async with (aiofiles.open(f"logs/{self.log_file}", "r") as f):
-            raw_lines: list[str] = (await f.read()).strip().split("\n")
-            text: str = ""
-            for raw_line in raw_lines:
-                if "[RSYNC]" not in raw_line:
-                    text += re.sub(r"\[.*?m", "", raw_line) + "\n"
-            if "[RSYNC]" in raw_lines[-1]:
-                text += re.sub(r"\[.*?m", "", raw_lines[-1])
-            return text
+            return re.sub(r"\[.*?m", "", (await f.read()).strip())
 
 
     async def is_alive(self) -> bool:
