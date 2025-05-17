@@ -48,8 +48,8 @@ class Process:
             text: str = ""
             for raw_line in raw_lines:
                 if "to-chk" not in raw_line:
-                    text += f"{re.sub(r'\[.*?m', '', raw_line)}\n"
-            text += re.sub(r'\[.*?m', '', raw_lines[-1])
+                    text += re.sub(r"\[.*?m", "", raw_line) + "\n"
+            text += re.sub(r"\[.*?m", "", raw_lines[-1])
             return text
 
 
