@@ -47,9 +47,11 @@ class Process:
 @base.router.callback_query(F.data.startswith("update_output"))
 async def _update_output(callback: CallbackQuery) -> None:
     await callback.answer()
-    process: Process = list(Process.processes.values())[int(callback.data.replace("update_output ", ""))]
+    index: int = int(callback.data.replace("process ", ""))
+    process: Process = list(Process.processes.values())[index]
+    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {index}")]]
     try:
-        await callback.message.edit_text(process.description, parse_mode="html")
+        await callback.message.edit_text(process.description, parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     except TelegramBadRequest:
         pass
 
