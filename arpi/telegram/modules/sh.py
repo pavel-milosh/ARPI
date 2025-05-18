@@ -33,7 +33,7 @@ class Process:
                 self.output += re.sub(r"\x1B\[[0-?]*[ -/]*[@-~]", "", line.decode())
             await asyncio.sleep(0.1)
         await self.process.wait()
-        await base.bot.send_message(self.chat_id, "Process executed\n" + self.description, parse_mode="html")
+        await base.bot.send_message(self.chat_id, "Process executed\n" + self.description[-4000:], parse_mode="html")
         del Process.processes[self.command]
 
 
@@ -51,7 +51,7 @@ async def _update_output(callback: CallbackQuery) -> None:
     process: Process = list(Process.processes.values())[index]
     buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {index}")]]
     try:
-        await callback.message.edit_text(process.description, parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+        await callback.message.edit_text(process.description[-4096:], parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     except TelegramBadRequest:
         pass
 
@@ -62,7 +62,7 @@ async def _process(callback: CallbackQuery) -> None:
     index: int = int(callback.data.replace("process ", ""))
     process: Process = list(Process.processes.values())[index]
     buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {index}")]]
-    await callback.message.answer(process.description, parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    await callback.message.answer(process.description[-4096:], parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
 
 @base.router.message(Command("processes"))
