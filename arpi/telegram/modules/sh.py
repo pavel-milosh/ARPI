@@ -1,4 +1,5 @@
 import asyncio
+from asyncio import Lock
 
 from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
@@ -14,30 +15,29 @@ class Process:
     def __init__(self, chat_id: int, command: str) -> None:
         self.chat_id = chat_id
         self.command = command
+        self._lock = Lock()
         self.process = None
+        self.output = ""
         Process.processes[self.command] = self
-        asyncio.create_task(self.__start())
+        asyncio.create_task(self._start())
 
 
-    async def __start(self) -> None:
+    async def _start(self) -> None:
         self.process = await asyncio.create_subprocess_shell(self.command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
-        await self.process.wait()
-        text: str = (f"Process executed\n"
-                     f"\t\t\t\tCommand: <code>{self.command}</code>\n"
-                     f"\t\t\t\tReturncode: <code>{self.process.returncode}</code>\n"
-                     f"\t\t\t\tOutput: <code>{(await self.process.stdout.read()).decode().strip()}</code>")
-        await base.bot.send_message(self.chat_id, text, parse_mode="html")
-        del Process.processes[self.command]
-
-
-    async def output(self) -> str:
-        output: str = ""
         while True:
             line: bytes = await self.process.stdout.readline()
             if not line:
                 break
-            output += line.decode()
-        return output
+            async with self._lock:
+                self.output += line.decode()
+            await asyncio.sleep(0.1)
+        await self.process.wait()
+        text: str = (f"Process executed\n"
+                     f"\t\t\t\tCommand: <code>{self.command}</code>\n"
+                     f"\t\t\t\tReturncode: <code>{self.process.returncode}</code>\n"
+                     f"\t\t\t\tOutput: <code>{self.output}</code>")
+        await base.bot.send_message(self.chat_id, text, parse_mode="html")
+        del Process.processes[self.command]
 
 
 @base.router.callback_query(F.data.startswith("process"))
@@ -50,7 +50,7 @@ async def _process(callback: CallbackQuery) -> None:
             return
         text: str = (f"Command: <code>{process.command}</code>\n"
                      f"Returncode: <code>{process.process.returncode}</code>\n"
-                     f"Output: <code>{await process.output()}</code>")
+                     f"Output: <code>{process.output}</code>")
         try:
             await message.edit_text(text, parse_mode="html")
         except TelegramBadRequest:
