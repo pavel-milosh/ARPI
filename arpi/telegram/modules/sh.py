@@ -33,7 +33,7 @@ class Process:
             if not line:
                 break
             async with self._lock:
-                self.output += re.sub(r"\x1B\[[0-?]*[ -/]*[@-~]", "", line.decode())
+                self.output += re.sub(r"\[.*?m", "", line.decode())
             await asyncio.sleep(0.1)
         await self.process.wait()
         await base.bot.send_message(self.chat_id,  f"{self.description}\n\t\t\t\t<b>Process executed</b>"[-4000:], parse_mode="html")
@@ -69,7 +69,7 @@ async def _process(callback: CallbackQuery) -> None:
 
 @base.router.message(Command("processes"))
 async def _processes(message: Message) -> None:
-    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text=process.command, callback_data=f"process {process.identifier}") for process in Process.processes.values()]]
+    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text=process.command, callback_data=f"process {process.identifier}")] for process in Process.processes.values()]
     await message.answer(f"All alive processes:", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
 
