@@ -33,30 +33,34 @@ class Process:
                 self.output += re.sub(r"\x1B\[[0-?]*[ -/]*[@-~]", "", line.decode())
             await asyncio.sleep(0.1)
         await self.process.wait()
-        text: str = (f"Process executed\n"
-                     f"\t\t\t\tCommand: <code>{self.command}</code>\n"
-                     f"\t\t\t\tReturncode: <code>{self.process.returncode}</code>\n"
-                     f"\t\t\t\tOutput: <code>{self.output}</code>")
-        await base.bot.send_message(self.chat_id, text, parse_mode="html")
+        await base.bot.send_message(self.chat_id, "Process executed\n" + self.description, parse_mode="html")
         del Process.processes[self.command]
+
+
+    @property
+    def description(self) -> str:
+        return (f"\t\t\t\tCommand: <code>{self.command}</code>\n"
+                f"\t\t\t\tReturncode: <code>{self.process.returncode}</code>\n"
+                f"\t\t\t\tOutput: <code>{self.output}</code>")
+
+
+@base.router.callback_query(F.data.startswith("update_output"))
+async def _update_output(callback: CallbackQuery) -> None:
+    await callback.answer()
+    process: Process = list(Process.processes.values())[int(callback.data.replace("update_output ", ""))]
+    try:
+        await callback.message.edit_text(process.description, parse_mode="html")
+    except TelegramBadRequest:
+        pass
 
 
 @base.router.callback_query(F.data.startswith("process"))
 async def _process(callback: CallbackQuery) -> None:
-    message: Message = await callback.message.answer(".")
-    process: Process = list(Process.processes.values())[int(callback.data.replace("process ", ""))]
     await callback.answer()
-    while True:
-        if process not in Process.processes.values():
-            return
-        text: str = (f"Command: <code>{process.command}</code>\n"
-                     f"Returncode: <code>{process.process.returncode}</code>\n"
-                     f"Output: <code>{process.output}</code>")
-        try:
-            await message.edit_text(text, parse_mode="html")
-        except TelegramBadRequest:
-            pass
-        await asyncio.sleep(5)
+    index: int = int(callback.data.replace("process ", ""))
+    process: Process = list(Process.processes.values())[index]
+    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {index}")]]
+    await callback.message.answer(process.description, parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
 
 @base.router.message(Command("processes"))
