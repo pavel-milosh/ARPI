@@ -39,20 +39,21 @@ class Process:
 
     @property
     def description(self) -> str:
-        return (f"\t\t\t\tCommand: <code>{self.command}</code>\n"
-                f"\t\t\t\tReturncode: <code>{self.process.returncode}</code>\n"
-                f"\t\t\t\tOutput: <code>{self.output}</code>")
+        return (f"{self.output}\n"
+                f"\t\t\t\tCommand: <code>{self.command}</code>\n"
+                f"\t\t\t\tReturncode: <code>{self.process.returncode}</code>")
 
 
 @base.router.callback_query(F.data.startswith("update_output"))
 async def _update_output(callback: CallbackQuery) -> None:
-    await callback.answer()
-    index: int = int(callback.data.replace("process ", ""))
+    index: int = int(callback.data.replace("update_output ", ""))
     process: Process = list(Process.processes.values())[index]
     buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {index}")]]
     try:
         await callback.message.edit_text(process.description[-4096:], parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+        await callback.answer("Output updated")
     except TelegramBadRequest:
+        await callback.answer("Output NOT updated", show_alert=True)
         pass
 
 
