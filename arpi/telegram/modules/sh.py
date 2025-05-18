@@ -1,10 +1,5 @@
 import asyncio
-import random
-import re
-import string
-from subprocess import Popen
 
-import aiofiles
 from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
@@ -19,42 +14,30 @@ class Process:
     def __init__(self, chat_id: int, command: str) -> None:
         self.chat_id = chat_id
         self.command = command
-        self.log_file = "".join([random.choice(string.ascii_letters) for _ in range(8)])
-        self.end_marker = "".join([random.choice(string.ascii_letters) for _ in range(8)])
+        self.process = None
         Process.processes[self.command] = self
-        self.popen = Popen(f"({self.command}; echo {self.end_marker}) > logs/{self.log_file} 2>&1", shell=True)
-        asyncio.create_task(self.__check_alive())
+        asyncio.create_task(self.__start())
 
 
-    async def __check_alive(self) -> None:
+    async def __start(self) -> None:
+        self.process = await asyncio.create_subprocess_shell(self.command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+        output, _ = await self.process.communicate()
+        text: str = (f"Process executed\n"
+                     f"\t\t\t\tCommand: <code>{self.command}</code>\n"
+                     f"\t\t\t\tReturncode: <code>{self.process.returncode}</code>\n"
+                     f"\t\t\t\tOutput: <code>{output}</code>")
+        await base.bot.send_message(self.chat_id, text, parse_mode="html")
+        del Process.processes[self.command]
+
+
+    async def output(self) -> str:
+        output: str = ""
         while True:
-            if await asyncio.to_thread(self.popen.poll) is None and await self.is_alive():
-                await asyncio.sleep(1)
-                continue
-
-            await asyncio.sleep(2)
-            if self.popen.returncode == 0:
-                text: str = f"Process executed successfully: <code>{self.command}</code>"
-            else:
-                text: str = f"Process executed with error (returncode {self.popen.returncode}): <code>{self.command}</code>"
-            text += f"\nStdout:\n<code>{await self.log()}</code>"
-            del Process.processes[self.command]
-            await base.bot.send_message(self.chat_id, text, parse_mode="html")
-
-
-    async def log(self) -> str:
-        async with (aiofiles.open(f"logs/{self.log_file}", "r") as f):
-            return re.sub(r"\[.*?m", "", (await f.read()).strip())
-
-
-    async def is_alive(self) -> bool:
-        return self.end_marker not in await self.log()
-
-
-    #____________________PROPERTIES____________________
-    @property
-    def returncode(self) -> int:
-        return self.popen.returncode
+            line: bytes = await self.process.stdout.readline()
+            if not line:
+                break
+            output += line.decode()
+        return output
 
 
 @base.router.callback_query(F.data.startswith("process"))
@@ -65,16 +48,14 @@ async def _process(callback: CallbackQuery) -> None:
     while True:
         if process not in Process.processes.values():
             return
-        text: str = (
-            f"Process: <code>{process.command}</code>\n"
-            f"Returncode: <code>{process.returncode}</code>\n"
-            f"Stdout: \n<code>{await process.log()}</code>"
-        )
+        text: str = (f"Command: <code>{process.command}</code>\n"
+                     f"Returncode: <code>{process.process.returncode}</code>\n"
+                     f"Output: <code>{await process.output()}</code>")
         try:
             await message.edit_text(text, parse_mode="html")
         except TelegramBadRequest:
             pass
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
 
 
 @base.router.message(Command("processes"))
