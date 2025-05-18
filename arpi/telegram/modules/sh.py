@@ -21,11 +21,11 @@ class Process:
 
     async def __start(self) -> None:
         self.process = await asyncio.create_subprocess_shell(self.command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
-        output, _ = await self.process.communicate()
+        await self.process.wait()
         text: str = (f"Process executed\n"
                      f"\t\t\t\tCommand: <code>{self.command}</code>\n"
                      f"\t\t\t\tReturncode: <code>{self.process.returncode}</code>\n"
-                     f"\t\t\t\tOutput: <code>{output}</code>")
+                     f"\t\t\t\tOutput: <code>{(await self.process.stdout.read()).decode().strip()}</code>")
         await base.bot.send_message(self.chat_id, text, parse_mode="html")
         del Process.processes[self.command]
 
