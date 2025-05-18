@@ -1,4 +1,5 @@
 import asyncio
+import re
 from asyncio import Lock
 
 from aiogram import F
@@ -29,7 +30,7 @@ class Process:
             if not line:
                 break
             async with self._lock:
-                self.output += line.decode()
+                self.output += re.sub(r"\x1B\[[0-?]*[ -/]*[@-~]", "", line.decode())
             await asyncio.sleep(0.1)
         await self.process.wait()
         text: str = (f"Process executed\n"
@@ -55,7 +56,7 @@ async def _process(callback: CallbackQuery) -> None:
             await message.edit_text(text, parse_mode="html")
         except TelegramBadRequest:
             pass
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(5)
 
 
 @base.router.message(Command("processes"))
