@@ -1,5 +1,7 @@
 import asyncio
+import random
 import re
+import string
 from asyncio import Lock
 
 from aiogram import F
@@ -16,10 +18,11 @@ class Process:
     def __init__(self, chat_id: int, command: str) -> None:
         self.chat_id = chat_id
         self.command = command
-        self._lock = Lock()
         self.process = None
         self.output = ""
-        Process.processes[self.command] = self
+        self.identifier = "".join([random.choice(string.ascii_letters) for _ in range(16)])
+        self._lock = Lock()
+        Process.processes[self.identifier] = self
         asyncio.create_task(self._start())
 
 
@@ -33,8 +36,8 @@ class Process:
                 self.output += re.sub(r"\x1B\[[0-?]*[ -/]*[@-~]", "", line.decode())
             await asyncio.sleep(0.1)
         await self.process.wait()
-        await base.bot.send_message(self.chat_id, "Process executed\n" + self.description[-4000:], parse_mode="html")
-        del Process.processes[self.command]
+        await base.bot.send_message(self.chat_id,  f"{self.description}\n\t\t\t\t<b>Process executed</b>"[-4000:], parse_mode="html")
+        del Process.processes[self.identifier]
 
 
     @property
@@ -46,11 +49,10 @@ class Process:
 
 @base.router.callback_query(F.data.startswith("update_output"))
 async def _update_output(callback: CallbackQuery) -> None:
-    index: int = int(callback.data.replace("update_output ", ""))
-    process: Process = list(Process.processes.values())[index]
-    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {index}")]]
+    identifier: str = callback.data.replace("update_output ", "")
+    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {identifier}")]]
     try:
-        await callback.message.edit_text(process.description[-4096:], parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+        await callback.message.edit_text(Process.processes[identifier].description[-4096:], parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
         await callback.answer("Output updated")
     except TelegramBadRequest:
         await callback.answer("Output NOT updated", show_alert=True)
@@ -60,15 +62,14 @@ async def _update_output(callback: CallbackQuery) -> None:
 @base.router.callback_query(F.data.startswith("process"))
 async def _process(callback: CallbackQuery) -> None:
     await callback.answer()
-    index: int = int(callback.data.replace("process ", ""))
-    process: Process = list(Process.processes.values())[index]
-    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {index}")]]
-    await callback.message.answer(process.description[-4096:], parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    identifier: str = callback.data.replace("process ", "")
+    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text="Update output", callback_data=f"update_output {identifier}")]]
+    await callback.message.answer(Process.processes[identifier].description[-4096:], parse_mode="html", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
 
 @base.router.message(Command("processes"))
 async def _processes(message: Message) -> None:
-    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text=list(Process.processes.keys())[i], callback_data=f"process {i}")] for i in range(len(Process.processes.keys()))]
+    buttons: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(text=process.command, callback_data=f"process {process.identifier}") for process in Process.processes.values()]]
     await message.answer(f"All alive processes:", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
 

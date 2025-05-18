@@ -3,11 +3,10 @@ from setuptools import setup, find_packages
 
 setup(
     name="arpi",
-    version="0.1.7",
+    version="0.1.8",
     packages=find_packages(),
     install_requires=[
-        "aiogram>=3.0",
-        "aiofiles"
+        "aiogram>=3.0"
     ],
     entry_points={
         "console_scripts": [
