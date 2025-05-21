@@ -10,6 +10,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 
 from .. import base
+from ... import flash
 
 
 class Process:
@@ -81,3 +82,12 @@ async def _sh(message: Message) -> None:
         await message.answer(f"Process created: <code>{command}</code>", parse_mode="html")
     else:
         await message.answer("Empty command")
+
+
+
+@base.router.message(Command("TEST"))
+async def _test(message: Message) -> None:
+    distribution: str = message.text.split()[1]
+    device: str = message.text.split()[2]
+    await flash.start(distribution, [device])
+    await message.answer("DONE")
