@@ -3,10 +3,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="arpi",
-    version="0.1.91",
+    version="0.1.92",
     packages=find_packages(),
     install_requires=[
-        "aiogram>=3.0"
+        "aiogram>=3.0",
+        "tqdm"
     ],
     entry_points={
         "console_scripts": [
