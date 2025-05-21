@@ -6,19 +6,18 @@ import subprocess
 
 from .copy import _ as copy
 from .hash import _ as hash
+from ..config import _ as config
 
 
 def _algorithm(distribution: str, device: str) -> None:
-    ventoy: str = os.getenv("ventoy")
-    folder_distribution: str = os.getenv(distribution)
     dev_device: str = os.path.join("/dev", device)
     postfix: str = "".join(random.choices(string.ascii_uppercase, k=8))
     mount_point: str = os.path.join("/tmp", f"ARPI_FLASH_{device.upper()}_{postfix}")
 
     os.makedirs(mount_point, exist_ok=True)
-    subprocess.run(f"yes | sudo bash {ventoy} -I -L ARnoLD {dev_device}", shell=True, check=True)
+    subprocess.run(f"yes | sudo bash {config['os']['ventoy']} -I -L ARnoLD {dev_device}", shell=True, check=True)
     subprocess.run(f"sudo mount -o sync {dev_device}1 {mount_point}", shell=True, check=True)
-    copy(folder_distribution, mount_point)
+    copy(config["os"][distribution], mount_point)
     subprocess.run("sync", shell=True, check=True)
     hash(mount_point)
     subprocess.run(f"sudo umount -l {mount_point}", shell=True, check=True)
