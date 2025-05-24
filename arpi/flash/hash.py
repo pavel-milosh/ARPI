@@ -1,10 +1,12 @@
 import os
+import time
 
 from blake3 import blake3
 from tqdm import tqdm
 
 
-CHUNK_SIZE: int = 1024 * 1024
+CHUNK_SIZE: int = 1024 * 1024 # Mb
+MAX_SPEED: int = 10 # Mb/s
 
 
 class HashError(Exception):
@@ -24,5 +26,6 @@ def _(iso_path: str) -> None:
         while chunk := f.read(CHUNK_SIZE):
             hash.update(chunk)
             pbar.update(len(chunk))
+            time.sleep(1 / MAX_SPEED)
     if hash.hexdigest() != hashsum:
         raise HashError()
