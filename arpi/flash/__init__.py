@@ -19,7 +19,7 @@ def _algorithm(distribution: str, device: str) -> None:
     subprocess.run(f"sudo mount -o sync {dev_device}1 {mount_point}", shell=True, check=True)
     copy(config["os"][distribution], mount_point)
     subprocess.run("sync", shell=True, check=True)
-    hash(mount_point)
+    hash(os.path.join(mount_point, f"{distribution}.iso"))
     subprocess.run(f"sudo umount -l {mount_point}", shell=True, check=True)
     os.rmdir(mount_point)
     print(f"Done {device}")

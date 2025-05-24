@@ -1,6 +1,6 @@
-import hashlib
 import os
 
+from blake3 import blake3
 from tqdm import tqdm
 
 
@@ -11,26 +11,18 @@ class HashError(Exception):
     pass
 
 
-def _file(path: str) -> str:
-    hash = hashlib.sha256()
-    with open(path, "rb") as f, tqdm(
-        total=os.path.getsize(path),
+def _(iso_path: str) -> None:
+    hashsum: str = open(f"{iso_path}.blake3", "r").read()
+    hash: blake3 = blake3()
+    with open(iso_path, "rb") as f, tqdm(
+        total=os.path.getsize(iso_path),
         unit="B",
         unit_scale=True,
         unit_divisor=1024,
-        desc=f"Calculating hash for {os.path.basename(path)}"
+        desc=f"Comparing hash for {os.path.basename(iso_path)}"
     ) as pbar:
         while chunk := f.read(CHUNK_SIZE):
             hash.update(chunk)
             pbar.update(len(chunk))
-    return hash.hexdigest()
-
-
-def _(destination_folder: str) -> None:
-    with open(os.path.join(destination_folder, "hashes.sha256"), "r") as f:
-        for line in f:
-            if not line.strip():
-                continue
-            expected_hash, rel_path = line.strip().split(None, 1)
-            if _file(os.path.join(destination_folder, rel_path)).lower() != expected_hash.lower():
-                raise HashError(f"Hash mismatch: {rel_path}")
+    if hash.hexdigest() != hashsum:
+        raise HashError()
